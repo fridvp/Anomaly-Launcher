@@ -1,0 +1,24 @@
+IDI_ICON1 ICON "assets/icon3.ico"
+1 VERSIONINFO
+FILEVERSION 1,0,0,0
+PRODUCTVERSION 1,0,0,0
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0" // Кодировка (английский США)
+        BEGIN
+            VALUE "CompanyName", "plyaka.egor Incorporated"
+            VALUE "FileDescription", "Anomaly Launcher"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "AnomalyLauncher"
+            VALUE "LegalCopyright", "Copyright (C) 2025"
+            VALUE "OriginalFilename", "AnomalyLauncher.exe"
+            VALUE "ProductName", "Anomaly Launcher"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 0x04B0
+    END
+END
