@@ -1,24 +1,24 @@
-// Стандартная библиотека
+
 use std::{fs, path::Path};
 
-// Для работы с WinAPI (используется в minimize_to_tray и force_clear_shader_cache)
+
 use winapi::{
     shared::windef::HWND,
     um::winuser::*,
 };
 
-// Для SHFileOperationW (force_clear_shader_cache)
+
 use windows::{
     core::PCWSTR,
     Win32::UI::Shell::{SHFileOperationW, SHFILEOPSTRUCTW, FO_DELETE, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT}
 };
 
-// Для __cpuid (has_avx_support)
+
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::__cpuid;
 
-// Для WindowMode (update_user_ltx)
-use crate::app_config::WindowMode;  // Или полный путь, если модуль app_config определен иначе
+
+use crate::app_config::WindowMode; 
 
 const USER_LTX: &str = "appdata/user.ltx";
 const USER_LTX_OLD: &str = "appdata/user.ltx.old";
@@ -36,20 +36,20 @@ const USER_LTX_OLD: &str = "appdata/user.ltx.old";
 
 pub fn minimize_to_tray(hwnd: HWND) {
     unsafe {
-        // Сворачиваем окно
+
         ShowWindow(hwnd, SW_MINIMIZE);
         
-        // Получаем текущие стили окна (возвращает i32)
+
         let style = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
         
-        // Устанавливаем новые стили (преобразуем обратно в i32)
+
         SetWindowLongW(
             hwnd,
             GWL_EXSTYLE,
             (style | WS_EX_TOOLWINDOW & !WS_EX_APPWINDOW) as i32,
         );
         
-        // Обновляем окно
+
         ShowWindow(hwnd, SW_HIDE);
         ShowWindow(hwnd, SW_SHOW);
     }
