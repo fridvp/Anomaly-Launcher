@@ -2,10 +2,7 @@
 use std::{fs, path::Path};
 
 
-use winapi::{
-    shared::windef::HWND,
-    um::winuser::*,
-};
+
 
 
 use windows::{
@@ -23,36 +20,283 @@ use crate::app_config::WindowMode;
 const USER_LTX: &str = "appdata/user.ltx";
 const USER_LTX_OLD: &str = "appdata/user.ltx.old";
 
+use walkdir::WalkDir;
+use std::thread;
+use std::error::Error;
+use std::time::Duration;
+use rfd::MessageDialog;
+use winapi::um::processthreadsapi::OpenProcess;
+use winapi::um::winbase::SetProcessAffinityMask;
+use winapi::um::winnt::{PROCESS_SET_INFORMATION};
+use sysinfo::PidExt;
+use sysinfo::{System, ProcessExt, SystemExt};
+//********************************FUNCTION_FOR_AUDIO_FIX*********************************
 
 
-
-
-
-
-
-
-
-
-
-pub fn minimize_to_tray(hwnd: HWND) {
-    unsafe {
-
-        ShowWindow(hwnd, SW_MINIMIZE);
-        
-
-        let style = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
-        
-
-        SetWindowLongW(
-            hwnd,
-            GWL_EXSTYLE,
-            (style | WS_EX_TOOLWINDOW & !WS_EX_APPWINDOW) as i32,
-        );
-        
-
-        ShowWindow(hwnd, SW_HIDE);
-        ShowWindow(hwnd, SW_SHOW);
+const ALSOFT_INI: &str = "bin/alsoft.ini";
+const ALSOFT_INI_BAK: &str = "bin/alsoft.ini.bak";
+pub fn apply_sound_fix(check_box_fix_sound_checked: bool) -> std::io::Result<()> {
+    if check_box_fix_sound_checked {
+        if !Path::new(ALSOFT_INI).exists() {
+            return Ok(());
+        }
+        if Path::new(ALSOFT_INI_BAK).exists() {
+            fs::remove_file(ALSOFT_INI_BAK)?;
+        }
+        fs::rename(ALSOFT_INI, ALSOFT_INI_BAK)?;
+    } else {
+        if Path::new(ALSOFT_INI).exists() {
+            return Ok(());
+        }
+        if Path::new(ALSOFT_INI_BAK).exists() {
+            fs::rename(ALSOFT_INI_BAK, ALSOFT_INI)?;
+        }
     }
+    Ok(())
+}
+
+//********************************FUNCTION_FOR_CPU_AFFINITY*********************************
+
+
+pub fn set_cpu_affinity() -> Result<(), Box<dyn Error>> {
+    let target_exes = [
+        "AnomalyDX11AVX.exe",
+        "AnomalyDX11.exe",
+        "AnomalyDX10AVX.exe",
+        "AnomalyDX10.exe",
+        "AnomalyDX9AVX.exe",
+        "AnomalyDX9.exe",
+        "AnomalyDX8AVX.exe",
+        "AnomalyDX8.exe",
+    ];
+
+    let mut system = System::new_all();
+    let logical_cores = system.cpus().len();
+    let available_cores: u32 = (1 << logical_cores) - 4;
+
+    println!(
+        "Logical cores: {}, Available mask: {:b} ({})",
+        logical_cores, available_cores, available_cores
+    );
+
+    loop {
+        system.refresh_all();
+
+        for (_, process) in system.processes() {
+            let process_name = process.name();
+            if target_exes.iter().any(|&exe| process_name.starts_with(exe)) {
+                println!("Found process: {} (PID: {})", process.name(), process.pid().as_u32());
+
+                let pid = process.pid().as_u32();
+                unsafe {
+                    let handle = OpenProcess(PROCESS_SET_INFORMATION, 0, pid);
+                    if handle.is_null() {
+                        eprintln!("Failed to open process {}: Access denied", pid);
+                        continue;
+                    }
+
+                    if SetProcessAffinityMask(handle, available_cores) == 0 {
+                        eprintln!("Failed to set CPU affinity for process {}", pid);
+                    } else {
+                        println!("Successfully set CPU affinity for process {}", pid);
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
+        thread::sleep(Duration::from_secs(5));
+    }
+}
+
+//********************************FUNCTION_FOR_ERROR*********************************
+
+
+pub fn show_error(title: &str, desc: &str) {
+    MessageDialog::new()
+        .set_title(title)
+        .set_description(desc)
+        .set_level(rfd::MessageLevel::Error)
+        .set_buttons(rfd::MessageButtons::Ok)
+        .show();
+}
+
+//********************************TABLE_FOR_NON_ADDON_FILES*********************************
+
+
+//those files dont count as addons (aka ignored)
+const ALLOWED_FILES: [&str; 6] = [
+    "atmosfear_default_settings.ltx",
+    "atmosfear_options.ltx",
+    "axr_options.ltx",
+    "cache_dbg.ltx",
+    "localization.ltx",
+    "warfare_options.ltx",
+];
+
+
+
+
+
+
+//********************************CHECKSUM_FUNCTION*********************************
+use md5::{Context, Digest};
+use std::io::{self, Read};
+use std::fs::File;
+
+use std::sync::mpsc; //for channels
+
+const CHECKSUMS_MD5: &str = "tools/checksums.md5";
+const CHUNK_SIZE: usize = 8192;
+
+pub fn calculate_md5(file_path: &str) -> io::Result<Digest> {
+    let mut file = File::open(file_path)?;
+    let mut context = Context::new();
+    let mut buffer = [0; CHUNK_SIZE];
+
+    loop {
+        let count = file.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        context.consume(&buffer[..count]);
+    }
+
+    Ok(context.compute())
+}
+
+pub fn verify_install(
+    verification_progress: &mut f32,
+    current_file: &mut String,
+    tx: &mpsc::Sender<(String, Vec<String>, Vec<String>, f32, String)>,
+) -> Result<(String, Vec<String>, Vec<String>), Box<dyn std::error::Error>> {
+    let mut result = String::new();
+    let mut missing_files = Vec::new();
+    let mut corrupt_files = Vec::new();
+
+    // IGNORED FILES LIST (made it so it wont get triggered by modded exes and all that sh)
+    let ignored_files = [
+        "bin\\AnomalyDX11AVX.exe",
+        "bin\\AnomalyDX11.exe",
+        "bin\\AnomalyDX10AVX.exe",
+        "bin\\AnomalyDX10.exe",
+        "bin\\AnomalyDX9AVX.exe",
+        "bin\\AnomalyDX9.exe",
+        "bin\\AnomalyDX8AVX.exe",
+        "bin\\AnomalyDX8.exe",
+        "fsgame.ltx",
+        "AnomalyLauncher.exe",
+    ];
+
+    // check if you have that checksum file :D
+    if !Path::new(CHECKSUMS_MD5).exists() {
+        result.push_str("* checksums.md5 missing *");
+        return Ok((result, missing_files, corrupt_files));
+    }
+
+    // reading checksums.md5
+    let checksums = fs::read_to_string(CHECKSUMS_MD5)?;
+
+    let total_files = checksums.lines().count();
+    
+
+    for (processed_file,line) in checksums.lines().enumerate() {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() < 2 || !parts[1].starts_with('*') || parts[0].starts_with('#') || parts[0].starts_with(';') {
+            continue;
+        }
+    
+        let checksum = parts[0].to_lowercase();
+        let filename = &parts[1][1..];
+    
+        if ignored_files.contains(&filename) {
+            continue;
+        }
+    
+        *current_file = filename.to_string();
+        *verification_progress = processed_file as f32 / total_files as f32;
+    
+        if !Path::new(filename).exists() {
+            missing_files.push(filename.to_string());
+        } else {
+            let digest = calculate_md5(filename)?;
+            let calculated = format!("{:x}", digest);
+    
+            if calculated != checksum {
+                corrupt_files.push(filename.to_string());
+            }
+        }
+    
+        //sending current progress into the channel
+        //i hope it counts as multithreading at least a bit so i can brag about it
+        let _ = tx.send((
+            String::new(),
+            missing_files.clone(),
+            corrupt_files.clone(),
+            *verification_progress,
+            current_file.clone(),
+        ));
+    }
+    println!("VERIFICATION FINISHED");
+    if !missing_files.is_empty() {
+        result.push_str("* files missing, please reinstall *\n");
+        result.push_str(&format!("Missing files: {:?}\n", missing_files));
+    }
+
+    if !corrupt_files.is_empty() {
+        result.push_str("* checksum verification failed, please reinstall *\n");
+        result.push_str(&format!("Corrupt files: {:?}\n", corrupt_files));
+    }
+    let _ = tx.send((
+        result.clone(),
+        missing_files.clone(),
+        corrupt_files.clone(),
+        1.0,
+        "".to_string(),
+    ));
+    Ok((result, missing_files, corrupt_files))
+}
+
+//********************************FUNCTION_FOR_ADDONS_CHECK*********************************
+
+
+pub fn check_for_addons(gamedata_path: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    let mut has_addons = false;
+
+    // check if gamedata exists
+    if !Path::new(gamedata_path).exists() {
+        return Ok(false);
+    }
+
+    // recursion check of all files in gamedata
+    for entry in WalkDir::new(gamedata_path).into_iter().filter_map(|e| e.ok()) {
+        let path = entry.path();
+
+        // checking if the file is in allowed list
+        if path.is_file() {
+            let file_name = path.to_string_lossy().to_string();
+            let is_allowed = ALLOWED_FILES.iter().any(|&allowed| file_name.ends_with(allowed));
+
+            if !is_allowed {
+                has_addons = true;
+                break;
+            }
+        }
+    }
+
+    Ok(has_addons)
+}
+
+
+use eframe::egui;
+
+
+pub fn minimize_to_tray(ctx: &egui::Context) {
+    
+        ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true));
+        
+        ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
+    
 }
 
 
@@ -86,6 +330,13 @@ pub fn force_clear_shader_cache() -> std::io::Result<()> {
             Ok(())
     }
 }
+
+
+
+
+
+
+
 //********************************FUNCTION_FOR_AVX_SUPPORT*********************************
 pub fn has_avx_support() -> bool {
     unsafe {
