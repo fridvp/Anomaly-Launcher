@@ -20,3 +20,11 @@ jobs:
       run: cargo build --release
     - name: Run tests
       run: cargo test --release
+    - name: Create Release
+      if: github.ref == 'refs/heads/master'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          target/release/AnomalyLauncher.exe
+        tag_name: "v$(date +%Y.%m.%d)"
+        generate_release_notes: true
