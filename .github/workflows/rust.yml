@@ -17,9 +17,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Get short commit hash
-        id: git_short_hash
-        run: echo "::set-output name=hash::$(git rev-parse --short HEAD)"
+    - name: Get Datetime
+      id: datetime
+      run: echo "::set-output name=today::$(date +'%-Y.%-m.%-d.%-H.%-M')"
+    - name: Get Version
+      run: echo "VERSION ${{steps.datetime.outputs.today}}"
+      env:
+        VERSION: "${{steps.datetime.outputs.today}}"
     - name: Build
       run: cargo build --release
     - name: Run tests
@@ -30,5 +34,5 @@ jobs:
       with:
         files: |
           target/release/AnomalyLauncher.exe
-        tag_name: "${{steps.git_short_hash.outputs.hash}}"
+        tag_name: "${{steps.datetime.outputs.today}}"
         generate_release_notes: true
