@@ -17,23 +17,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Build
-        run: cargo build --release
-
-      - name: Get current date
-        id: date
-        run: echo "DATE=$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
-
-      - name: Get short SHA
-        id: sha
-        run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: target/release/AnomalyLauncher.exe
-          tag_name: "v${{ steps.date.outputs.DATE }}-${{ steps.sha.outputs.SHORT_SHA }}"
-          generate_release_notes: true
+    - name: Get Datetime
+      id: datetime
+      run: echo "::set-output name=today::$(date +'%-Y.%-m.%-d')"
+    - name: Get Version
+      run: echo "VERSION ${{steps.datetime.outputs.today}}"
+      env:
+        VERSION: "${{steps.datetime.outputs.today}}"
+    - name: Build
+      run: cargo build --release
+    - name: Run tests
+      run: cargo test --release
+    - name: Create Release
+      if: github.ref == 'refs/heads/master'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          target/release/AnomalyLauncher.exe
+        tag_name: "${{steps.datetime.outputs.today}}"
+        generate_release_notes: true
