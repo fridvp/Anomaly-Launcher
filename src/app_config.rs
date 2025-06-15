@@ -39,6 +39,7 @@ pub struct AppConfig {
     pub window_mode: WindowMode,
     pub custom_args: bool,          // New field
     pub custom_args_text: String,   // New field
+    pub launcherregmode: bool,
 }
 
 pub enum AppConfigError {
@@ -60,6 +61,7 @@ impl Default for AppConfig {
             window_mode: WindowMode::Default,
             custom_args: false,      // Default to false
             custom_args_text: String::new(), // Empty string by default
+            launcherregmode: false,
         }
     }
 }

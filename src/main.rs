@@ -61,11 +61,6 @@ fn main() -> eframe::Result<()> {
         let default_config = AppConfig::default();
         let _ = default_config.write();
     }
-    if has_avx_support() {
-        println!("AVX is supported!");
-    } else {
-        println!("AVX aint supported D: .");
-    }
     let mut fonts = FontDefinitions::default();
     fonts.font_data.insert(
         "OpenSans".to_owned(),
@@ -94,12 +89,19 @@ fn main() -> eframe::Result<()> {
     });
 
 
-
+    let config2 = AppConfig::load().unwrap_or_else(|err| {
+        match err {
+            app_config::AppConfigError::ReadFailed => show_error("Read Failed", "Failed to read the configuration file. Please remove 'launcherconfig.toml' and try to launch program again."),
+            app_config::AppConfigError::BadStructure => show_error("Bad configuration", "Your configuration seems to be damaged. Please remove 'launcherconfig.toml' and try to launch program again."),
+            app_config::AppConfigError::WriteFailed => todo!(),
+        };
+        exit(1);
+    });
     let viewport = ViewportBuilder::default()
         .with_maximize_button(false)
         .with_resizable(false)
-        .with_inner_size(Vec2 { x: 1200.0, y: 675.0 })
-        .with_decorations(false)
+        .with_inner_size(if !config2.launcherregmode { Vec2 { x: 1200.0, y: 675.0 }}else{Vec2 { x: 800.0, y: 450.0 }})
+        .with_decorations(config2.launcherregmode)
         .with_transparent(true)
         .with_icon(arc_icon);
         
@@ -141,9 +143,21 @@ struct LauncherApp {
 
 impl LauncherApp {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        
+        let mut config = AppConfig::load().unwrap_or_else(|err| {
+            match err {
+                app_config::AppConfigError::ReadFailed => show_error("Read Failed", "Failed to read the configuration file. Please remove 'launcherconfig.toml' and try to launch program again."),
+                app_config::AppConfigError::BadStructure => show_error("Bad configuration", "Your configuration seems to be damaged. Please remove 'launcherconfig.toml' and try to launch program again."),
+                app_config::AppConfigError::WriteFailed => todo!(),
+            };
+            exit(1);
+        });
         let background_texture = {
-            let image_data = include_bytes!("../assets/background2.png"); // background image
+
+            let image_data = if !config.launcherregmode {
+                include_bytes!("../assets/background2.png")as &[u8]
+            } else {
+                include_bytes!("../assets/background2reg.png")as &[u8]
+            }; // background image
             let image = image::load_from_memory(image_data).unwrap().to_rgba8();
             let size = [image.width() as _, image.height() as _];
             let pixels = image.into_raw();
@@ -154,14 +168,6 @@ impl LauncherApp {
                 Default::default(),
             ))
         };
-        let mut config = AppConfig::load().unwrap_or_else(|err| {
-            match err {
-                app_config::AppConfigError::ReadFailed => show_error("Read Failed", "Failed to read the configuration file. Please remove 'launcherconfig.toml' and try to launch program again."),
-                app_config::AppConfigError::BadStructure => show_error("Bad configuration", "Your configuration seems to be damaged. Please remove 'launcherconfig.toml' and try to launch program again."),
-                app_config::AppConfigError::WriteFailed => todo!(),
-            };
-            exit(1);
-        });
         let avx_supported = has_avx_support();
         if !avx_supported {
             config.use_avx = false;
@@ -261,10 +267,10 @@ impl eframe::App for LauncherApp {
             
             ui.horizontal(|ui| {
                 // LEFT PART: SETTINGS
-                ui.add_space(7.0+145.0);
+                ui.add_space(if !self.config.launcherregmode {7.0+145.0} else {7.0});
                 ui.vertical(|ui| {
                     ui.set_min_width(300.0);
-                    ui.add_space(55.0+112.0);
+                    ui.add_space(if !self.config.launcherregmode {55.0+112.0} else {55.0});
                     // Renderer
                     ui.label(RichText::new(LOCALIZATION2.renderer.clone()).size(18.0)).on_hover_text(LOCALIZATION2.renderer_hover.clone());
                     ComboBox::from_id_source("renderer")
@@ -330,7 +336,7 @@ impl eframe::App for LauncherApp {
                     ui.with_layout(egui::Layout::top_down(egui::Align::RIGHT), |ui| {
                         ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                                 // HEADER "Anomaly Launcher"
-                                ui.add_space(50.0+112.0); // up_space
+                                ui.add_space(if !self.config.launcherregmode {50.0+112.0} else {50.0}); // up_space
                                 ui.label(RichText::new("Anomaly Launcher").size(40.0).strong());
                                 ui.add_space(60.0); // down_space
 
