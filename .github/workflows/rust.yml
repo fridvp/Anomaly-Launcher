@@ -5,7 +5,8 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-
+permissions:
+  contents: write
 env:
   CARGO_TERM_COLOR: always
 
@@ -26,5 +27,5 @@ jobs:
       with:
         files: |
           target/release/AnomalyLauncher.exe
-        tag_name: "v$(date +%Y.%m.%d)"
+        tag_name: "v$(date +%Y.%m.%d)-$(git rev-parse --short HEAD)"
         generate_release_notes: true
