@@ -11,4 +11,4 @@ A cool launcher for S.T.A.L.K.E.R. Anomaly, written in Rust.
 - imagine some cool feature here
 
 ## Installation
-- just download it from moddb or releases page ig? idk shit about github sorry );
+- just download it from moddb or releases page ig?
