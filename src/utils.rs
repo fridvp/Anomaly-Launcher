@@ -204,7 +204,7 @@ pub fn verify_install(
     let mut missing_files = Vec::new();
     let mut corrupt_files = Vec::new();
 
-    // IGNORED FILES LIST (made it so it wont get triggered by modded exes and all that sh)
+    // IGNORED FILES LIST (made it so it wont get triggered by modded exes)
     let ignored_files = [
         "bin\\AnomalyDX11AVX.exe",
         "bin\\AnomalyDX11.exe",
@@ -259,7 +259,7 @@ pub fn verify_install(
         }
     
         //sending current progress into the channel
-        //i hope it counts as multithreading at least a bit so i can brag about it
+        // send progress update to UI thread
         let _ = tx.send((
             String::new(),
             missing_files.clone(),
@@ -339,8 +339,8 @@ pub fn minimize_to_tray(ctx: &egui::Context) {
 
 pub fn force_clear_shader_cache() -> std::io::Result<()> {
     let path = "appdata\\shaders_cache";
-    //Fck C#
-    //transforming path into wide-string with double null-terminator (tu-du tun tu-dun)
+    // using SHFileOperationW to handle Mod Organizer 2 VFS locks
+    //transforming path into wide-string with double null-terminator (required by SHFileOperationW)
     let mut path_wide: Vec<u16> = path.encode_utf16().collect();
     path_wide.push(0); // first \0
     path_wide.push(0); // second \0 MUST HAAAVE
@@ -355,7 +355,7 @@ pub fn force_clear_shader_cache() -> std::io::Result<()> {
     
     
 
-    // Dark Magic
+    // invoke Win32 shell delete
     unsafe {
         SHFileOperationW(&mut file_op);
             Ok(())
@@ -374,14 +374,14 @@ pub fn has_avx_support() -> bool {
         let cpuid = __cpuid(1); // EAX=1 — getting info about processors functions
 
         //checking bit nr 28 in ECX register (avx bit)
-        //hell yeah, at least somewhere i could use my assembly knowledge
+        // low-level CPUID bit check for AVX
         (cpuid.ecx & (1 << 28)) != 0
 }
 
 
 
 
-//********************************SHIT_FOR_WINDOW_MODE*********************************
+//********************************WINDOW_MODE*********************************
 
 
 

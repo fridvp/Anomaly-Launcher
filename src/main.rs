@@ -133,7 +133,7 @@ struct LauncherApp {
     app_shutdown: bool,
     warning_text: String,
     verification_progress: f32, // progress from 0.0 to 1.0
-    current_file: String,       // current file (for file integrity check. same for thath sh^)
+    current_file: String,       // current file (for file integrity check. for file integrity check)
     verification_rx: Option<mpsc::Receiver<(String, Vec<String>, Vec<String>, f32, String)>>, // channel for datas
     is_verifying: bool,         // flag that says if it is verifying or not :D
     avx_supported: bool,
@@ -173,12 +173,12 @@ impl LauncherApp {
         // forming gamedata path
         let gamedata_path = exe_dir.join("gamedata");
         
-        // addon check AAAAA
+        // addon check
         let warning_text = if gamedata_path.exists() {
             match check_for_addons(gamedata_path.to_str().unwrap()) {
                 Ok(true) => LOCALIZATION2.warning1.to_string(),
                 Ok(false) => String::new(), // no warning if no addons
-                Err(e) => format!("Error checking for addons: {}", e), // AAAA ERROR ALARM ALARM
+                Err(e) => format!("Error checking for addons: {}", e), // addon check error
             }
         } else {
             LOCALIZATION2.warning2.to_string() // warning if no gamedata folder
@@ -245,7 +245,7 @@ impl eframe::App for LauncherApp {
         let panel_frame = Frame::default().fill(egui::Color32::TRANSPARENT);
         if let Some(texture) = &self.background_texture {
             egui::CentralPanel::default().frame(panel_frame).show(ctx, |ui| {
-                // STRETCHING THE IMAAAGE
+                // stretch background image to fit
                 let rect = ui.max_rect();
                 ui.put(rect, egui::Image::new(texture));
             });
@@ -328,11 +328,11 @@ impl eframe::App for LauncherApp {
                                 ui.label(RichText::new("Anomaly Launcher").size(40.0).strong());
                                 ui.add_space(60.0); // down_space
 
-                                // play button (obvious lmao)
+                                // play button
                                 let play_button = ui.add_sized([316.0, 65.0], Button::new(RichText::new(LOCALIZATION2.play_button).size(26.0)));
                                 if play_button.clicked() && !self.is_verifying {
                                     if let Err(e) = update_user_ltx(self.config.window_mode) {
-                                        eprintln!("HOLY FUCK ERROR WHILE UPDATING USER.LTX: {}", e);
+                                        eprintln!("Error while updating user.ltx: {}", e);
                                     }
                                     
                                     let game = Game::new(self.config.renderer, self.config.use_avx);
@@ -535,12 +535,12 @@ impl eframe::App for LauncherApp {
 
         });
 
-        // close that shit
+        // handle window close
         if ctx.input(|i| i.viewport().close_requested()) {
             self.app_shutdown = true;
         }
 
-        // I SAID CLOSE IT
+        // save config and exit
         if self.app_shutdown {
             match self.config.write() {
                 Ok(_) => {}
