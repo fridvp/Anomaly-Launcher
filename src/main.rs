@@ -89,7 +89,7 @@ fn main() -> eframe::Result<()> {
     });
 
 
-    let config2 = AppConfig::load().unwrap_or_else(|err| {
+    let config = AppConfig::load().unwrap_or_else(|err| {
         match err {
             app_config::AppConfigError::ReadFailed => show_error("Read Failed", "Failed to read the configuration file. Please remove 'launcherconfig.toml' and try to launch program again."),
             app_config::AppConfigError::BadStructure => show_error("Bad configuration", "Your configuration seems to be damaged. Please remove 'launcherconfig.toml' and try to launch program again."),
@@ -100,8 +100,8 @@ fn main() -> eframe::Result<()> {
     let viewport = ViewportBuilder::default()
         .with_maximize_button(false)
         .with_resizable(false)
-        .with_inner_size(if !config2.launcherregmode { Vec2 { x: 1200.0, y: 675.0 }}else{Vec2 { x: 800.0, y: 450.0 }})
-        .with_decorations(config2.launcherregmode)
+        .with_inner_size(if !config.launcherregmode { Vec2 { x: 1200.0, y: 675.0 }}else{Vec2 { x: 800.0, y: 450.0 }})
+        .with_decorations(config.launcherregmode)
         .with_transparent(true)
         .with_icon(arc_icon);
         
@@ -118,7 +118,7 @@ fn main() -> eframe::Result<()> {
             cc.egui_ctx.set_fonts(fonts);
             cc.egui_ctx.set_visuals(Styles::dark());
             set_custom_interaction(&cc.egui_ctx);
-            Box::new(LauncherApp::new(cc))
+            Box::new(LauncherApp::new(cc, config))
         }),
     )
 
@@ -144,15 +144,7 @@ struct LauncherApp {
 
 
 impl LauncherApp {
-    fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        let mut config = AppConfig::load().unwrap_or_else(|err| {
-            match err {
-                app_config::AppConfigError::ReadFailed => show_error("Read Failed", "Failed to read the configuration file. Please remove 'launcherconfig.toml' and try to launch program again."),
-                app_config::AppConfigError::BadStructure => show_error("Bad configuration", "Your configuration seems to be damaged. Please remove 'launcherconfig.toml' and try to launch program again."),
-                app_config::AppConfigError::WriteFailed => todo!(),
-            };
-            exit(1);
-        });
+    fn new(cc: &eframe::CreationContext<'_>, mut config: AppConfig) -> Self {
         let background_texture = {
 
             let image_data = if !config.launcherregmode {
