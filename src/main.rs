@@ -370,44 +370,42 @@ impl eframe::App for LauncherApp {
                                     if self.config.prefetch_sounds {
                                         args.push("-prefetch_sounds".to_string());
                                     }
-                                    if self.config.sndfix {
-                                        if let Err(e) = apply_sound_fix(self.config.sndfix) {
-                                            eprintln!("SHIIT ERROR WHILE APPLYING SOUND FIX: {}", e);
-                                        }
+                                    if let Err(e) = apply_sound_fix(self.config.sndfix) {
+                                        eprintln!("Error while applying sound fix: {}", e);
                                     }
+
                                     let launch_result = game.launch(args);
-                                    if let Err(e) = launch_result {
-                                        match e {
+                                    match launch_result {
+                                        Ok(_) => {
+                                            minimize_to_tray(ctx);
+
+                                            if self.config.cpuaffinity {
+                                                println!("Starting CPU affinity check");
+                                                if let Err(e) = set_cpu_affinity() {
+                                                    eprintln!("Error in set_cpu_affinity: {}", e);
+                                                }
+                                            }
+                                            self.app_shutdown = true;
+                                        }
+                                        Err(e) => match e {
                                             game::GameError::ExecutableNotFound => {
                                                 MessageDialog::new()
-                                                    .set_title("Executable not found")
-                                                    .set_description("Could not find the executable file of the game. Make sure you run the launcher from the game folder.")
-                                                    .set_level(rfd::MessageLevel::Error)
-                                                    .set_buttons(rfd::MessageButtons::Ok)
-                                                    .show();
+                                                .set_title("Executable not found")
+                                                .set_description("Could not find the executable file of the game. Make sure you run the launcher from the game folder.")
+                                                .set_level(rfd::MessageLevel::Error)
+                                                .set_buttons(rfd::MessageButtons::Ok)
+                                                .show();
                                             },
                                             game::GameError::Unknown(i) => {
                                                 MessageDialog::new()
-                                                    .set_title("Unknown error occured")
-                                                    .set_description(format!("The launcher failed to launch the game due to an unexpected error: {}",i))
-                                                    .set_level(rfd::MessageLevel::Error)
-                                                    .set_buttons(rfd::MessageButtons::Ok)
-                                                    .show();
+                                                .set_title("Unknown error occured")
+                                                .set_description(format!("The launcher failed to launch the game due to an unexpected error: {}", i))
+                                                .set_level(rfd::MessageLevel::Error)
+                                                .set_buttons(rfd::MessageButtons::Ok)
+                                                .show();
                                             },
-                                        }
+                                        },
                                     }
-
-                                        minimize_to_tray(ctx);
-
-                                    if self.config.cpuaffinity {
-                                        println!("Starting CPU affinity thread");
-                                        
-
-                                            if let Err(e) = set_cpu_affinity() {
-                                                eprintln!("Error in set_cpu_affinity: {}", e);
-                                            }
-                                    }
-                                    self.app_shutdown = true;
                                 }
 
                                 ui.add_space(2.0); // button spacing

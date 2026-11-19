@@ -79,7 +79,10 @@ pub fn set_cpu_affinity() -> Result<(), Box<dyn Error>> {
         logical_cores, available_cores, available_cores
     );
 
-    loop {
+    let mut elapsed_secs = 0;
+    const TIMEOUT_SECS: u64 = 60;
+
+    while elapsed_secs < TIMEOUT_SECS {
         system.refresh_all();
 
         for (_, process) in system.processes() {
@@ -106,7 +109,10 @@ pub fn set_cpu_affinity() -> Result<(), Box<dyn Error>> {
         }
 
         thread::sleep(Duration::from_secs(5));
+        elapsed_secs += 5;
     }
+
+    Err("Timed out waiting for Anomaly process (60s)".into())
 }
 
 //********************************FUNCTION_FOR_ERROR*********************************
