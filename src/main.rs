@@ -116,6 +116,8 @@ fn main() -> eframe::Result<()> {
         },
         Box::new(|cc| {
             cc.egui_ctx.set_fonts(fonts);
+            cc.egui_ctx.set_visuals(Styles::dark());
+            set_custom_interaction(&cc.egui_ctx);
             Box::new(LauncherApp::new(cc))
         }),
     )
@@ -248,21 +250,15 @@ impl eframe::App for LauncherApp {
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
         [0.0, 0.0, 0.0, 0.0]}
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        
-        ctx.set_visuals(Styles::dark());
-        set_custom_interaction(ctx);
         let panel_frame = Frame::default().fill(egui::Color32::TRANSPARENT);
         if let Some(texture) = &self.background_texture {
             egui::CentralPanel::default().frame(panel_frame).show(ctx, |ui| {
-                ui.style_mut().visuals = Styles::dark();
                 // STRETCHING THE IMAAAGE
                 let rect = ui.max_rect();
                 ui.put(rect, egui::Image::new(texture));
             });
         }
         egui::CentralPanel::default().frame(panel_frame).show(ctx, |ui| {
-            
-            ui.style_mut().visuals = Styles::dark();
             //MAIN CONTENT
             
             ui.horizontal(|ui| {
