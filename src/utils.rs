@@ -214,6 +214,7 @@ pub fn verify_install(
         "bin\\AnomalyDX9.exe",
         "bin\\AnomalyDX8AVX.exe",
         "bin\\AnomalyDX8.exe",
+        "bin\\VerifiedDX11.exe",
         "fsgame.ltx",
         "AnomalyLauncher.exe",
     ];

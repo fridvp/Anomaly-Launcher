@@ -433,7 +433,7 @@ impl eframe::App for LauncherApp {
                                                 eprintln!("Error resetting user.ltx: {}", e);
                                             }
                                         }
-                                        if verify_button.clicked() {
+                                        if verify_button.clicked() && !self.is_verifying {
                                             self.verification_progress = 0.0;
                                             self.current_file.clear();
                                             self.is_verifying = true;
@@ -486,14 +486,17 @@ impl eframe::App for LauncherApp {
 
 
             // verification check and update
+            let mut finished = false;
             if let Some(rx) = &self.verification_rx {
-                if let Ok((result, missing_files, corrupt_files, progress, current_file)) = rx.try_recv() {
+                while let Ok((result, missing_files, corrupt_files, progress, current_file)) = rx.try_recv() {
                     self.verification_progress = progress;
                     self.current_file = current_file;
 
                     // if update finished
                     if !result.is_empty() || progress >= 1.0 {
+                        let has_issues = !result.is_empty() || !missing_files.is_empty() || !corrupt_files.is_empty();
                         let mut message = result;
+
                         if !missing_files.is_empty() {
                             message.push_str("\nMissing files:\n");
                             for file in missing_files {
@@ -505,25 +508,29 @@ impl eframe::App for LauncherApp {
                             for file in corrupt_files {
                                 message.push_str(&format!("- {}\n", file));
                             }
-                        } else {
-                            message.push_str("\nNo issues found.\n");
+                        }
+                        if !has_issues {
+                            message.push_str("No issues found.");
                         }
 
                         MessageDialog::new()
-                            .set_title("Verification Result")
-                            .set_description(&message)
-                            .set_level(if message.is_empty() { rfd::MessageLevel::Info } else { rfd::MessageLevel::Warning })
-                            .set_buttons(rfd::MessageButtons::Ok)
-                            .show();
+                        .set_title("Verification Result")
+                        .set_description(&message)
+                        .set_level(if has_issues { rfd::MessageLevel::Warning } else { rfd::MessageLevel::Info })
+                        .set_buttons(rfd::MessageButtons::Ok)
+                        .show();
 
-                        // reset
-                        self.is_verifying = false;
-                        self.verification_rx = None;
+                        finished = true;
+                        break;
                     } else {
-                        // repain request if it aint done
                         ctx.request_repaint();
                     }
                 }
+            }
+
+            if finished {
+                self.is_verifying = false;
+                self.verification_rx = None;
             }
 
         });
