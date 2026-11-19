@@ -133,7 +133,7 @@ struct LauncherApp {
     app_shutdown: bool,
     warning_text: String,
     verification_progress: f32, // progress from 0.0 to 1.0
-    current_file: String,       // current file (for file integrity check. for file integrity check)
+    current_file: String,       // current file (for file integrity check)
     verification_rx: Option<mpsc::Receiver<(String, Vec<String>, Vec<String>, f32, String)>>, // channel for datas
     is_verifying: bool,         // flag that says if it is verifying or not :D
     avx_supported: bool,

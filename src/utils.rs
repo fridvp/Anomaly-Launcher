@@ -343,7 +343,7 @@ pub fn force_clear_shader_cache() -> std::io::Result<()> {
     //transforming path into wide-string with double null-terminator (required by SHFileOperationW)
     let mut path_wide: Vec<u16> = path.encode_utf16().collect();
     path_wide.push(0); // first \0
-    path_wide.push(0); // second \0 MUST HAAAVE
+    path_wide.push(0); // second \0
 
     let mut file_op = SHFILEOPSTRUCTW {
         hwnd: Default::default(),
