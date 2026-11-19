@@ -7,7 +7,14 @@ use std::{fs, path::Path};
 
 use windows::{
     core::PCWSTR,
-    Win32::UI::Shell::{SHFileOperationW, SHFILEOPSTRUCTW, FO_DELETE, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT}
+    Win32::{
+        Foundation::CloseHandle,
+        System::Threading::{OpenProcess, SetProcessAffinityMask, PROCESS_SET_INFORMATION},
+        UI::Shell::{
+            SHFileOperationW, SHFILEOPSTRUCTW, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT,
+            FO_DELETE,
+        },
+    },
 };
 
 
@@ -25,9 +32,10 @@ use std::thread;
 use std::error::Error;
 use std::time::Duration;
 use rfd::MessageDialog;
-use winapi::um::processthreadsapi::OpenProcess;
-use winapi::um::winbase::SetProcessAffinityMask;
-use winapi::um::winnt::{PROCESS_SET_INFORMATION};
+
+
+
+
 use sysinfo::PidExt;
 use sysinfo::{System, ProcessExt, SystemExt};
 //********************************FUNCTION_FOR_AUDIO_FIX*********************************
@@ -72,11 +80,23 @@ pub fn set_cpu_affinity() -> Result<(), Box<dyn Error>> {
 
     let mut system = System::new_all();
     let logical_cores = system.cpus().len();
-    let available_cores: u32 = (1 << logical_cores) - 4;
+
+    let all_cores: usize = if logical_cores >= usize::BITS as usize {
+        usize::MAX
+    } else {
+        (1usize << logical_cores) - 1
+    };
+
+    // Disable cores 0 and 1 if the CPU has more than 2 logical cores
+    let available_cores: usize = if logical_cores > 2 {
+        all_cores & !0b11
+    } else {
+        all_cores
+    };
 
     println!(
         "Logical cores: {}, Available mask: {:b} ({})",
-        logical_cores, available_cores, available_cores
+             logical_cores, available_cores, available_cores
     );
 
     let mut elapsed_secs = 0;
@@ -88,21 +108,25 @@ pub fn set_cpu_affinity() -> Result<(), Box<dyn Error>> {
         for (_, process) in system.processes() {
             let process_name = process.name();
             if target_exes.iter().any(|&exe| process_name.starts_with(exe)) {
-                println!("Found process: {} (PID: {})", process.name(), process.pid().as_u32());
-
                 let pid = process.pid().as_u32();
-                unsafe {
-                    let handle = OpenProcess(PROCESS_SET_INFORMATION, 0, pid);
-                    if handle.is_null() {
-                        eprintln!("Failed to open process {}: Access denied", pid);
-                        continue;
-                    }
+                println!("Found process: {} (PID: {})", process_name, pid);
 
-                    if SetProcessAffinityMask(handle, available_cores) == 0 {
-                        eprintln!("Failed to set CPU affinity for process {}", pid);
-                    } else {
-                        println!("Successfully set CPU affinity for process {}", pid);
-                        return Ok(());
+                unsafe {
+                    match OpenProcess(PROCESS_SET_INFORMATION, false, pid) {
+                        Ok(handle) => {
+                            let res = SetProcessAffinityMask(handle, available_cores);
+                            let _ = CloseHandle(handle);
+
+                            if let Err(e) = res {
+                                eprintln!("Failed to set CPU affinity for process {}: {}", pid, e);
+                            } else {
+                                println!("Successfully set CPU affinity for process {}", pid);
+                                return Ok(());
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to open process {}: {}", pid, e);
+                        }
                     }
                 }
             }

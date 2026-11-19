@@ -18,7 +18,6 @@ dependencies = [
  "sysinfo",
  "toml 0.8.14",
  "walkdir",
- "winapi",
  "windows",
  "winres",
 ]
