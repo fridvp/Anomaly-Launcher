@@ -345,14 +345,12 @@ pub fn force_clear_shader_cache() -> std::io::Result<()> {
 
 //********************************FUNCTION_FOR_AVX_SUPPORT*********************************
 pub fn has_avx_support() -> bool {
-    unsafe {
         // CPUid call to check for supported functions
         let cpuid = __cpuid(1); // EAX=1 — getting info about processors functions
 
         //checking bit nr 28 in ECX register (avx bit)
         //hell yeah, at least somewhere i could use my assembly knowledge
         (cpuid.ecx & (1 << 28)) != 0
-    }
 }
 
 

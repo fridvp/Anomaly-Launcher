@@ -28,8 +28,8 @@ use styles::Styles;
 
 
 
-mod funnysht;
-pub use funnysht::{minimize_to_tray, force_clear_shader_cache, has_avx_support, update_user_ltx, reset_user_ltx,calculate_md5,verify_install,check_for_addons,show_error,set_cpu_affinity,apply_sound_fix};
+mod utils;
+pub use utils::{minimize_to_tray, force_clear_shader_cache, has_avx_support, update_user_ltx, reset_user_ltx,calculate_md5,verify_install,check_for_addons,show_error,set_cpu_affinity,apply_sound_fix};
 
 
 
@@ -187,7 +187,7 @@ impl LauncherApp {
                 Err(e) => format!("Error checking for addons: {}", e), // AAAA ERROR ALARM ALARM
             }
         } else {
-            LOCALIZATION2.warning1.to_string() // warning if no gamedata folder
+            LOCALIZATION2.warning2.to_string() // warning if no gamedata folder
         };
         LauncherApp {
             config,
