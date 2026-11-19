@@ -272,7 +272,7 @@ impl eframe::App for LauncherApp {
                     ui.set_min_width(300.0);
                     ui.add_space(if !self.config.launcherregmode {55.0+112.0} else {55.0});
                     // Renderer
-                    ui.label(RichText::new(LOCALIZATION2.renderer.clone()).size(18.0)).on_hover_text(LOCALIZATION2.renderer_hover.clone());
+                    ui.label(RichText::new(LOCALIZATION2.renderer).size(18.0)).on_hover_text(LOCALIZATION2.renderer_hover);
                     ComboBox::from_id_source("renderer")
                         .selected_text(self.config.renderer.to_string())
                         .width(200.0)
@@ -286,7 +286,7 @@ impl eframe::App for LauncherApp {
                     ui.add_space(10.0); // element spacing
 
                     // Shadow Map Size
-                    ui.label(RichText::new(LOCALIZATION2.shadowmap.clone()).size(18.0)).on_hover_text(LOCALIZATION2.shadowmap_hover.clone());
+                    ui.label(RichText::new(LOCALIZATION2.shadowmap).size(18.0)).on_hover_text(LOCALIZATION2.shadowmap_hover);
                     ComboBox::from_id_source("shadow_map")
                         .selected_text(self.config.shadow_map.to_string())
                         .width(200.0)
@@ -301,31 +301,31 @@ impl eframe::App for LauncherApp {
                     ui.add_space(10.0); // element spacing
 
                     // Window Mode
-                    ui.label(RichText::new(LOCALIZATION2.winmode.clone()).size(18.0));
+                    ui.label(RichText::new(LOCALIZATION2.winmode).size(18.0));
                     ComboBox::from_id_source("window_mode")
                         .selected_text(self.config.window_mode.to_string())
                         .width(200.0)
                         .show_ui(ui, |ui| {
                             ui.selectable_value(&mut self.config.window_mode, WindowMode::Default, "------");
-                            ui.selectable_value(&mut self.config.window_mode, WindowMode::Fullscreen, LOCALIZATION2.fullscr.clone());
-                            ui.selectable_value(&mut self.config.window_mode, WindowMode::Windowed, LOCALIZATION2.wined.clone());
-                            ui.selectable_value(&mut self.config.window_mode, WindowMode::BorderlessWindowed, LOCALIZATION2.borlesswined.clone());
+                            ui.selectable_value(&mut self.config.window_mode, WindowMode::Fullscreen, LOCALIZATION2.fullscr);
+                            ui.selectable_value(&mut self.config.window_mode, WindowMode::Windowed, LOCALIZATION2.wined);
+                            ui.selectable_value(&mut self.config.window_mode, WindowMode::BorderlessWindowed, LOCALIZATION2.borlesswined);
                         });
 
                     ui.add_space(20.0); // spacing before Misc settings
 
                     // Misc settings
-                    ui.label(RichText::new(LOCALIZATION2.misclabel.clone()).size(18.0));
-                    ui.checkbox(&mut self.config.debug, LOCALIZATION2.debug_mode.clone()).on_hover_text(LOCALIZATION2.debug_mode_hover.clone());
-                    ui.checkbox(&mut self.config.prefetch_sounds, LOCALIZATION2.pref_sounds.clone()).on_hover_text(LOCALIZATION2.pref_sounds_hover.clone());
-                    ui.checkbox(&mut self.config.sndfix, LOCALIZATION2.workaround.clone()).on_hover_text(LOCALIZATION2.workaround_hover.clone());
+                    ui.label(RichText::new(LOCALIZATION2.misclabel).size(18.0));
+                    ui.checkbox(&mut self.config.debug, LOCALIZATION2.debug_mode).on_hover_text(LOCALIZATION2.debug_mode_hover);
+                    ui.checkbox(&mut self.config.prefetch_sounds, LOCALIZATION2.pref_sounds).on_hover_text(LOCALIZATION2.pref_sounds_hover);
+                    ui.checkbox(&mut self.config.sndfix, LOCALIZATION2.workaround).on_hover_text(LOCALIZATION2.workaround_hover);
                     if self.avx_supported {
-                        ui.checkbox(&mut self.config.use_avx, LOCALIZATION2.useavx.clone()).on_hover_text(LOCALIZATION2.useavx_hover.clone());
+                        ui.checkbox(&mut self.config.use_avx, LOCALIZATION2.useavx).on_hover_text(LOCALIZATION2.useavx_hover);
                     } else {
-                        ui.label(RichText::new(LOCALIZATION2.notsupportedavx.clone()).color(egui::Color32::RED));
+                        ui.label(RichText::new(LOCALIZATION2.notsupportedavx).color(egui::Color32::RED));
                     }
-                    ui.checkbox(&mut self.config.cpuaffinity, LOCALIZATION2.useaffinity.clone()).on_hover_text(LOCALIZATION2.useaffinity_hover.clone());
-                    ui.checkbox(&mut self.config.custom_args, LOCALIZATION2.customlaunch.clone()).on_hover_text(LOCALIZATION2.customlaunch_hover.clone());
+                    ui.checkbox(&mut self.config.cpuaffinity, LOCALIZATION2.useaffinity).on_hover_text(LOCALIZATION2.useaffinity_hover);
+                    ui.checkbox(&mut self.config.custom_args, LOCALIZATION2.customlaunch).on_hover_text(LOCALIZATION2.customlaunch_hover);
                         if self.config.custom_args {
                             ui.text_edit_singleline(&mut self.config.custom_args_text);
                         }
@@ -341,7 +341,7 @@ impl eframe::App for LauncherApp {
                                 ui.add_space(60.0); // down_space
 
                                 // play button (obvious lmao)
-                                let play_button = ui.add_sized([316.0, 65.0], Button::new(RichText::new(LOCALIZATION2.play_button.clone()).size(26.0)));
+                                let play_button = ui.add_sized([316.0, 65.0], Button::new(RichText::new(LOCALIZATION2.play_button).size(26.0)));
                                 if play_button.clicked() && !self.is_verifying {
                                     if let Err(e) = update_user_ltx(self.config.window_mode) {
                                         eprintln!("HOLY FUCK ERROR WHILE UPDATING USER.LTX: {}", e);
@@ -413,9 +413,9 @@ impl eframe::App for LauncherApp {
                                 // THE GRAND 3 BUTTON GROUP
                                 ui.horizontal(|ui| {
                                     ui.add_space((ui.available_width() - 316.0) / 2.0);
-                                        let clear_button = ui.add_sized([100.0, 40.0], Button::new(LOCALIZATION2.clear_shader_cache_button.clone()));
-                                        let reset_ltx = ui.add_sized([100.0, 40.0], Button::new(LOCALIZATION2.reset_user_ltx_button.clone()));
-                                        let verify_button = ui.add_sized([100.0, 40.0], Button::new(LOCALIZATION2.verify_installation_button.clone()));
+                                        let clear_button = ui.add_sized([100.0, 40.0], Button::new(LOCALIZATION2.clear_shader_cache_button));
+                                        let reset_ltx = ui.add_sized([100.0, 40.0], Button::new(LOCALIZATION2.reset_user_ltx_button));
+                                        let verify_button = ui.add_sized([100.0, 40.0], Button::new(LOCALIZATION2.verify_installation_button));
 
                                         if clear_button.clicked() && !self.is_verifying{
                                             let mut cache_path: PathBuf = env::current_dir().unwrap();
@@ -473,7 +473,7 @@ impl eframe::App for LauncherApp {
                                 ui.add_space(2.0); // button spacing
 
                                 // Quit BUTTON
-                                let quit_button = ui.add_sized([316.0, 65.0], Button::new(RichText::new(LOCALIZATION2.quit_button.clone()).size(26.0)));
+                                let quit_button = ui.add_sized([316.0, 65.0], Button::new(RichText::new(LOCALIZATION2.quit_button).size(26.0)));
                                 if quit_button.clicked() {
                                     self.app_shutdown = true;
                                 }
